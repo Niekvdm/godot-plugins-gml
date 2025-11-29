@@ -35,37 +35,39 @@ static func _build_anchor_inner(node, ctx: Dictionary) -> Control:
 
 
 static func _build_simple_anchor(node, ctx: Dictionary, style: Dictionary, defaults: Dictionary, gml_view, href: String, target: String) -> Control:
-	var label := RichTextLabel.new()
-	label.bbcode_enabled = true
-	label.fit_content = true
-	label.scroll_active = false
-	label.mouse_filter = Control.MOUSE_FILTER_STOP
+	# Check for @click attribute (like buttons)
+	var click_handler: String = node.get_attr("@click", "")
+	var has_click := not click_handler.is_empty()
+	var has_href := not href.is_empty()
 
 	var text_content: String = node.get_text_content()
+
+	# Use LinkButton for proper flex layout compatibility
+	var link := LinkButton.new()
+	link.text = text_content
 
 	# Get link color (default to typical link blue)
 	var link_color: Color = style.get("color", Color(0.4, 0.6, 1.0, 1.0))
 	var font_size: int = style.get("font-size", defaults.get("p_font_size", 16))
 
-	# Build BBCode for the link
-	var bbcode := ""
-
-	# Apply underline (default for links)
+	# Apply text decoration
 	var text_decoration: String = style.get("text-decoration", "underline")
-	if text_decoration == "underline":
-		bbcode += "[u]"
-
-	bbcode += "[color=#%s]" % link_color.to_html(false)
-	bbcode += "[url=%s]%s[/url]" % [href, text_content]
-	bbcode += "[/color]"
-
-	if text_decoration == "underline":
-		bbcode += "[/u]"
-
-	label.text = bbcode
+	match text_decoration:
+		"underline":
+			link.underline = LinkButton.UNDERLINE_MODE_ALWAYS
+		"none":
+			link.underline = LinkButton.UNDERLINE_MODE_NEVER
+		_:
+			link.underline = LinkButton.UNDERLINE_MODE_ON_HOVER
 
 	# Apply font size
-	label.add_theme_font_size_override("normal_font_size", font_size)
+	link.add_theme_font_size_override("font_size", font_size)
+
+	# Apply colors
+	link.add_theme_color_override("font_color", link_color)
+	link.add_theme_color_override("font_hover_color", link_color.lightened(0.2))
+	link.add_theme_color_override("font_pressed_color", link_color.darkened(0.1))
+	link.add_theme_color_override("font_focus_color", link_color)
 
 	# Font family
 	if style.has("font-family"):
@@ -74,23 +76,34 @@ static func _build_simple_anchor(node, ctx: Dictionary, style: Dictionary, defau
 		if fonts_dict.has(font_name):
 			var font = fonts_dict[font_name]
 			if font is Font:
-				label.add_theme_font_override("normal_font", font)
+				link.add_theme_font_override("font", font)
 
-	# Connect meta_clicked signal to emit link_clicked
+	# Connect pressed signal
 	if gml_view != null:
 		var view_ref = weakref(gml_view)
 		var href_copy = href
 		var target_copy = target
-		label.meta_clicked.connect(func(_meta):
+		var handler_copy = click_handler
+
+		link.pressed.connect(func():
 			var view = view_ref.get_ref()
 			if view != null:
-				view.link_clicked.emit(href_copy, target_copy)
+				# Emit @click handler if present, otherwise emit link_clicked
+				if has_click:
+					view.button_clicked.emit(handler_copy)
+				elif has_href:
+					view.link_clicked.emit(href_copy, target_copy)
 		)
 
-	return label
+	return link
 
 
 static func _build_complex_anchor(node, ctx: Dictionary, style: Dictionary, defaults: Dictionary, gml_view, href: String, target: String) -> Control:
+	# Check for @click attribute
+	var click_handler: String = node.get_attr("@click", "")
+	var has_click := not click_handler.is_empty()
+	var has_href := not href.is_empty()
+
 	# Create a button-like container for complex anchor content
 	var container := HBoxContainer.new()
 	container.mouse_filter = Control.MOUSE_FILTER_STOP
@@ -111,18 +124,22 @@ static func _build_complex_anchor(node, ctx: Dictionary, style: Dictionary, defa
 		var view_ref = weakref(gml_view)
 		var href_copy = href
 		var target_copy = target
+		var handler_copy = click_handler
 		container.gui_input.connect(func(event: InputEvent):
 			if event is InputEventMouseButton:
 				if event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
 					var view = view_ref.get_ref()
 					if view != null:
-						view.link_clicked.emit(href_copy, target_copy)
+						# Emit @click handler if present, otherwise emit link_clicked
+						if has_click:
+							view.button_clicked.emit(handler_copy)
+						elif has_href:
+							view.link_clicked.emit(href_copy, target_copy)
 		)
 
-	# Add hover cursor change
-	container.mouse_entered.connect(func():
+	# Show pointer cursor for clickable anchors
+	if has_click or has_href:
 		container.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
-	)
 
 	# Apply dimensions
 	if style.has("width"):
