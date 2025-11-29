@@ -227,7 +227,7 @@ static func parse_box_alignment(value: String) -> int:
 
 ## Apply cross-axis alignment to a child control.
 static func apply_cross_axis_alignment(control: Control, align_items: String, is_row: bool, child_style: Dictionary = {}) -> void:
-	# Check if child has explicit size on cross-axis
+	# Skip if child has explicit cross-axis size
 	if is_row:
 		if child_style.has("height") or child_style.has("min-height"):
 			return

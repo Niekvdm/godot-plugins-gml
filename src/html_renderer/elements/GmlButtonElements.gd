@@ -28,19 +28,37 @@ static func _build_complex_button(node, ctx: Dictionary, style: Dictionary, defa
 	var button := Button.new()
 	button.text = ""
 
-	# Create an HBoxContainer to hold the button's children
-	var content_container := HBoxContainer.new()
-	content_container.alignment = BoxContainer.ALIGNMENT_CENTER
-	content_container.add_theme_constant_override("separation", 4)
+	# Determine layout direction from flex-direction
+	var flex_direction = style.get("flex-direction", "row")
+	var is_row = flex_direction == "row"
+
+	# Create container to hold the button's children
+	var content_container: BoxContainer
+	if is_row:
+		content_container = HBoxContainer.new()
+	else:
+		content_container = VBoxContainer.new()
+
+	# Apply justify-content (main-axis alignment)
+	var justify = style.get("justify-content", "center")
+	content_container.alignment = GmlStyles.parse_box_alignment(justify)
+
+	content_container.add_theme_constant_override("separation", style.get("gap", 4))
 	content_container.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	content_container.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	content_container.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	# Button doesn't respect size flags - use anchors to fill the button rect
+	content_container.set_anchors_preset(Control.PRESET_FULL_RECT)
+
+	# Get align-items for cross-axis alignment
+	var align_items = style.get("align-items", "center")
 
 	# Build children
 	for child in node.children:
 		var child_control = ctx.build_node.call(child)
 		if child_control != null:
 			child_control.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			# Apply cross-axis alignment to children
+			var child_style = ctx.get_style.call(child) if not child.is_text_node else {}
+			GmlStyles.apply_cross_axis_alignment(child_control, align_items, is_row, child_style)
 			content_container.add_child(child_control)
 
 	button.add_child(content_container)

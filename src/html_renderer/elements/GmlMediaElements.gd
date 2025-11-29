@@ -15,8 +15,38 @@ static func build_image(node, ctx: Dictionary) -> Dictionary:
 
 
 static func _build_image_inner(node, ctx: Dictionary) -> Control:
+	var style = ctx.get_style.call(node)
 	var texture_rect := TextureRect.new()
-	texture_rect.expand_mode = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
+
+	# Check if BOTH width and height are explicitly set
+	var has_width = style.has("width") or style.has("min-width")
+	var has_height = style.has("height") or style.has("min-height")
+
+	if has_width and has_height:
+		# Fully sized image - use control's size
+		texture_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		texture_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+
+		# Apply dimensions directly to TextureRect (since we may wrap it)
+		if style.has("width"):
+			var width_dim = style["width"]
+			if width_dim is Dictionary and width_dim.get("unit", "") == "px":
+				texture_rect.custom_minimum_size.x = width_dim["value"]
+		if style.has("min-width"):
+			var dim = style["min-width"]
+			if dim is Dictionary and dim.get("unit", "") == "px":
+				texture_rect.custom_minimum_size.x = maxf(texture_rect.custom_minimum_size.x, dim["value"])
+		if style.has("height"):
+			var height_dim = style["height"]
+			if height_dim is Dictionary and height_dim.get("unit", "") == "px":
+				texture_rect.custom_minimum_size.y = height_dim["value"]
+		if style.has("min-height"):
+			var dim = style["min-height"]
+			if dim is Dictionary and dim.get("unit", "") == "px":
+				texture_rect.custom_minimum_size.y = maxf(texture_rect.custom_minimum_size.y, dim["value"])
+	else:
+		# Responsive image - expand to fit container width
+		texture_rect.expand_mode = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
 
 	var src = node.get_attr("src", "")
 	if not src.is_empty():
@@ -28,6 +58,12 @@ static func _build_image_inner(node, ctx: Dictionary) -> Control:
 				push_warning("GmlMediaElements: Failed to load texture: %s" % src)
 		else:
 			push_warning("GmlMediaElements: Image not found: %s" % src)
+
+	# For images with explicit dimensions, set size flags for centering
+	# SIZE_SHRINK_CENTER tells the parent container to center this control
+	if has_width and has_height:
+		texture_rect.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+		texture_rect.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 
 	return texture_rect
 
@@ -163,6 +199,14 @@ static func _build_svg_inner(node, ctx: Dictionary) -> Control:
 		if child.is_text_node:
 			continue
 		_parse_svg_element(svg_control, child, default_stroke, default_fill, default_stroke_width)
+
+	# Check if SVG has explicit dimensions for centering in flex containers
+	var has_width = style.has("width") or style.has("min-width")
+	var has_height = style.has("height") or style.has("min-height")
+
+	if has_width and has_height:
+		svg_control.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+		svg_control.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 
 	return svg_control
 
