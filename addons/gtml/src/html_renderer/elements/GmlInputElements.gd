@@ -33,6 +33,10 @@ static func build_input(node, ctx: Dictionary) -> Dictionary:
 static func _build_text_input(node, input_type: String, style: Dictionary, gml_view, defaults: Dictionary = {}) -> Control:
 	var line_edit := LineEdit.new()
 
+	# Handle disabled attribute
+	if node.has_attr("disabled"):
+		line_edit.editable = false
+
 	# Apply styling
 	var style_box = _create_input_stylebox(style)
 	line_edit.add_theme_stylebox_override("normal", style_box)
@@ -91,6 +95,10 @@ static func _build_text_input(node, input_type: String, style: Dictionary, gml_v
 static func _build_checkbox_input(node, style: Dictionary, gml_view, defaults: Dictionary = {}) -> Control:
 	var checkbox := CheckBox.new()
 
+	# Handle disabled attribute
+	if node.has_attr("disabled"):
+		checkbox.disabled = true
+
 	# Apply font styles (checkbox has limited styling options)
 	_apply_font_styles(checkbox, style, defaults)
 
@@ -119,6 +127,10 @@ static func _build_checkbox_input(node, style: Dictionary, gml_view, defaults: D
 ## Build a range input (slider).
 static func _build_range_input(node, style: Dictionary, gml_view, defaults: Dictionary = {}) -> Control:
 	var slider := HSlider.new()
+
+	# Handle disabled attribute
+	if node.has_attr("disabled"):
+		slider.editable = false
 
 	# Apply slider track styling
 	if style.has("background-color") or style.has("border"):
@@ -178,6 +190,10 @@ static func _build_submit_button(node, style: Dictionary, ctx: Dictionary) -> Co
 	var gml_view = ctx.gml_view
 	var button := Button.new()
 
+	# Handle disabled attribute
+	if node.has_attr("disabled"):
+		button.disabled = true
+
 	var value = node.get_attr("value", "Submit")
 	button.text = value
 
@@ -208,6 +224,10 @@ static func _build_textarea_inner(node, ctx: Dictionary) -> Control:
 	var gml_view = ctx.gml_view
 
 	var text_edit := TextEdit.new()
+
+	# Handle disabled attribute
+	if node.has_attr("disabled"):
+		text_edit.editable = false
 
 	# Apply styling
 	var style_box = _create_input_stylebox(style)
@@ -271,6 +291,10 @@ static func _build_select_inner(node, ctx: Dictionary) -> Control:
 	var gml_view = ctx.gml_view
 
 	var option_button := OptionButton.new()
+
+	# Handle disabled attribute
+	if node.has_attr("disabled"):
+		option_button.disabled = true
 
 	# Apply styling
 	var style_box = _create_input_stylebox(style)

@@ -62,11 +62,15 @@ static func build_heading_inner(node, level: int, ctx: Dictionary) -> Control:
 	var label := Label.new()
 
 	# Get font size from defaults or style
+	# HTML5 spec: h1=2em(32px), h2=1.5em(24px), h3=1.17em(~19px), h4=1em(16px), h5=0.83em(~13px), h6=0.67em(~11px)
 	var default_size: int
 	match level:
 		1: default_size = defaults.get("h1_font_size", 32)
 		2: default_size = defaults.get("h2_font_size", 24)
-		3: default_size = defaults.get("h3_font_size", 20)
+		3: default_size = defaults.get("h3_font_size", 19)
+		4: default_size = defaults.get("h4_font_size", 16)
+		5: default_size = defaults.get("h5_font_size", 13)
+		6: default_size = defaults.get("h6_font_size", 11)
 		_: default_size = defaults.get("p_font_size", 16)
 
 	var font_size: int = style.get("font-size", default_size)

@@ -28,6 +28,14 @@ static func _build_complex_button(node, ctx: Dictionary, style: Dictionary, defa
 	var button := Button.new()
 	button.text = ""
 
+	# Handle disabled attribute
+	if node.has_attr("disabled"):
+		button.disabled = true
+
+	# Handle type attribute (submit, reset, button - default is submit per HTML5 spec)
+	var button_type = node.get_attr("type", "submit")
+	button.set_meta("button_type", button_type)
+
 	# Determine layout direction from flex-direction
 	var flex_direction = style.get("flex-direction", "row")
 	var is_row = flex_direction == "row"
@@ -87,6 +95,14 @@ static func _build_complex_button(node, ctx: Dictionary, style: Dictionary, defa
 static func _build_simple_button(node, ctx: Dictionary, style: Dictionary, defaults: Dictionary, gml_view) -> Dictionary:
 	var button := Button.new()
 	button.text = node.get_text_content()
+
+	# Handle disabled attribute
+	if node.has_attr("disabled"):
+		button.disabled = true
+
+	# Handle type attribute (submit, reset, button - default is submit per HTML5 spec)
+	var button_type = node.get_attr("type", "submit")
+	button.set_meta("button_type", button_type)
 
 	# Wire up @click handler
 	if node.has_attr("@click"):
