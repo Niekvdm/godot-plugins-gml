@@ -296,6 +296,87 @@ class TextDecorationContainer extends Control:
 			draw_line(Vector2(x_offset, y), Vector2(x_offset + text_width, y), _color, line_thickness)
 
 
+## Apply text-shadow to a label using a shadow label behind it.
+## Returns a Control that wraps the label with shadow.
+static func apply_text_shadow(label: Label, shadow: Dictionary) -> Control:
+	if shadow.get("none", false):
+		label.set_meta("text_shadow", shadow)
+		return label
+
+	var container := TextShadowContainer.new()
+	container.setup(label, shadow)
+	return container
+
+
+## Custom container that renders text shadow behind a label.
+class TextShadowContainer extends Control:
+	var _label: Label
+	var _shadow_label: Label
+	var _shadow: Dictionary
+
+	func setup(label: Label, shadow: Dictionary) -> void:
+		_label = label
+		_shadow = shadow
+
+		# Create shadow label (copy of original)
+		_shadow_label = Label.new()
+		_shadow_label.text = label.text
+		_shadow_label.horizontal_alignment = label.horizontal_alignment
+		_shadow_label.vertical_alignment = label.vertical_alignment
+		_shadow_label.autowrap_mode = label.autowrap_mode
+
+		# Copy font settings
+		if label.has_theme_font_override("font"):
+			_shadow_label.add_theme_font_override("font", label.get_theme_font("font"))
+		if label.has_theme_font_size_override("font_size"):
+			_shadow_label.add_theme_font_size_override("font_size", label.get_theme_font_size("font_size"))
+
+		# Apply shadow color
+		var shadow_color: Color = shadow.get("color", Color(0, 0, 0, 0.5))
+		_shadow_label.add_theme_color_override("font_color", shadow_color)
+
+		# Add shadow first (behind), then original label
+		add_child(_shadow_label)
+		add_child(label)
+
+		# Match label sizing
+		custom_minimum_size = label.custom_minimum_size
+		size_flags_horizontal = label.size_flags_horizontal
+		size_flags_vertical = label.size_flags_vertical
+
+		# Connect to resize and text changes
+		resized.connect(_on_resized)
+		label.resized.connect(_on_label_resized)
+
+	func _ready() -> void:
+		_update_layout()
+
+	func _on_resized() -> void:
+		_update_layout()
+
+	func _on_label_resized() -> void:
+		custom_minimum_size = _label.get_combined_minimum_size()
+		_update_layout()
+
+	func _update_layout() -> void:
+		if not _label or not _shadow_label:
+			return
+
+		# Position main label at origin
+		_label.position = Vector2.ZERO
+		_label.size = size
+
+		# Position shadow label with offset
+		var offset_x: float = _shadow.get("offset_x", 0)
+		var offset_y: float = _shadow.get("offset_y", 0)
+		_shadow_label.position = Vector2(offset_x, offset_y)
+		_shadow_label.size = size
+
+		# Sync text if changed
+		if _shadow_label.text != _label.text:
+			_shadow_label.text = _label.text
+
+
 ## Apply border properties to a StyleBoxFlat.
 static func apply_border_to_stylebox(style_box: StyleBoxFlat, style: Dictionary) -> void:
 	var width_top: int = 0
@@ -483,3 +564,126 @@ static func apply_gradient_angle(texture: GradientTexture2D, angle: float) -> vo
 
 	texture.fill_from = center - direction * 0.5
 	texture.fill_to = center + direction * 0.5
+
+
+## Apply outline to a control.
+## Returns a Control that wraps the original with an outline drawn around it.
+static func apply_outline(control: Control, outline: Dictionary, offset: int = 0) -> Control:
+	if outline.get("style", "solid") == "none" or outline.get("width", 0) == 0:
+		control.set_meta("outline", outline)
+		return control
+
+	var container := OutlineContainer.new()
+	container.setup(control, outline, offset)
+	return container
+
+
+## Custom container that draws an outline around its child control.
+class OutlineContainer extends Control:
+	var _child: Control
+	var _outline: Dictionary
+	var _offset: int
+
+	func setup(child: Control, outline: Dictionary, offset: int) -> void:
+		_child = child
+		_outline = outline
+		_offset = offset
+
+		# Add the child
+		add_child(child)
+
+		# Match child sizing
+		custom_minimum_size = child.custom_minimum_size
+		size_flags_horizontal = child.size_flags_horizontal
+		size_flags_vertical = child.size_flags_vertical
+
+		# Connect to resize events
+		resized.connect(_on_resized)
+		child.resized.connect(_on_child_resized)
+
+	func _ready() -> void:
+		_update_layout()
+
+	func _on_resized() -> void:
+		_update_layout()
+		queue_redraw()
+
+	func _on_child_resized() -> void:
+		custom_minimum_size = _child.get_combined_minimum_size()
+		queue_redraw()
+
+	func _update_layout() -> void:
+		if _child:
+			_child.position = Vector2.ZERO
+			_child.size = size
+
+	func _draw() -> void:
+		if not _child:
+			return
+
+		var width: int = _outline.get("width", 1)
+		var color: Color = _outline.get("color", Color.WHITE)
+		var style: String = _outline.get("style", "solid")
+
+		if width <= 0 or style == "none":
+			return
+
+		# Draw outline outside the control bounds (with offset)
+		var outline_offset: float = _offset + width / 2.0
+		var rect := Rect2(
+			-outline_offset,
+			-outline_offset,
+			size.x + outline_offset * 2,
+			size.y + outline_offset * 2
+		)
+
+		if style == "dashed":
+			_draw_dashed_rect(rect, color, width)
+		elif style == "dotted":
+			_draw_dotted_rect(rect, color, width)
+		else:  # solid
+			draw_rect(rect, color, false, width)
+
+	func _draw_dashed_rect(rect: Rect2, color: Color, width: int) -> void:
+		var dash_length := width * 4.0
+		var gap_length := width * 2.0
+
+		# Top edge
+		_draw_dashed_line(rect.position, rect.position + Vector2(rect.size.x, 0), color, width, dash_length, gap_length)
+		# Right edge
+		_draw_dashed_line(rect.position + Vector2(rect.size.x, 0), rect.position + rect.size, color, width, dash_length, gap_length)
+		# Bottom edge
+		_draw_dashed_line(rect.position + rect.size, rect.position + Vector2(0, rect.size.y), color, width, dash_length, gap_length)
+		# Left edge
+		_draw_dashed_line(rect.position + Vector2(0, rect.size.y), rect.position, color, width, dash_length, gap_length)
+
+	func _draw_dashed_line(from: Vector2, to: Vector2, color: Color, width: int, dash: float, gap: float) -> void:
+		var direction := (to - from).normalized()
+		var length := from.distance_to(to)
+		var pos := 0.0
+
+		while pos < length:
+			var dash_end := minf(pos + dash, length)
+			draw_line(from + direction * pos, from + direction * dash_end, color, width)
+			pos = dash_end + gap
+
+	func _draw_dotted_rect(rect: Rect2, color: Color, width: int) -> void:
+		var dot_spacing := width * 2.0
+
+		# Top edge
+		_draw_dotted_line(rect.position, rect.position + Vector2(rect.size.x, 0), color, width, dot_spacing)
+		# Right edge
+		_draw_dotted_line(rect.position + Vector2(rect.size.x, 0), rect.position + rect.size, color, width, dot_spacing)
+		# Bottom edge
+		_draw_dotted_line(rect.position + rect.size, rect.position + Vector2(0, rect.size.y), color, width, dot_spacing)
+		# Left edge
+		_draw_dotted_line(rect.position + Vector2(0, rect.size.y), rect.position, color, width, dot_spacing)
+
+	func _draw_dotted_line(from: Vector2, to: Vector2, color: Color, width: int, spacing: float) -> void:
+		var direction := (to - from).normalized()
+		var length := from.distance_to(to)
+		var pos := 0.0
+
+		while pos < length:
+			draw_circle(from + direction * pos, width / 2.0, color)
+			pos += spacing

@@ -28,7 +28,7 @@ const PASSTHROUGH_PROPS = [
 	"display", "flex-direction", "align-items", "justify-content",
 	"text-align", "overflow", "overflow-x", "overflow-y", "visibility",
 	"text-transform", "white-space", "text-overflow",
-	"flex-wrap", "align-self"
+	"flex-wrap", "align-self", "cursor", "list-style-type"
 ]
 
 const SIZE_PROPS = [
@@ -38,7 +38,7 @@ const SIZE_PROPS = [
 	"margin-top", "margin-right", "margin-bottom", "margin-left",
 	"border-top-left-radius", "border-top-right-radius",
 	"border-bottom-left-radius", "border-bottom-right-radius",
-	"text-indent", "word-spacing", "line-height"
+	"text-indent", "word-spacing", "line-height", "outline-offset"
 ]
 
 const DIMENSION_PROPS = [
@@ -306,6 +306,14 @@ func _convert_property_value(prop_name: String, value: String):
 	# Box shadow
 	if prop_name == "box-shadow":
 		return GmlBorderValues.parse_box_shadow(value)
+
+	# Text shadow
+	if prop_name == "text-shadow":
+		return GmlBorderValues.parse_text_shadow(value)
+
+	# Outline
+	if prop_name == "outline":
+		return GmlBorderValues.parse_outline(value)
 
 	# Unknown property - return as string
 	return value

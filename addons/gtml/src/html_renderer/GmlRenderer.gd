@@ -386,6 +386,51 @@ func _apply_dimensions(control: Control, node) -> void:
 	elif height_percent >= 1.0:
 		control.size_flags_vertical = Control.SIZE_EXPAND_FILL
 
+	# Apply cursor style
+	if style.has("cursor"):
+		control.mouse_default_cursor_shape = _parse_cursor(style["cursor"])
+
+
+## Parse CSS cursor value to Godot CursorShape.
+static func _parse_cursor(value: String) -> Control.CursorShape:
+	match value:
+		"pointer":
+			return Control.CURSOR_POINTING_HAND
+		"text":
+			return Control.CURSOR_IBEAM
+		"move":
+			return Control.CURSOR_MOVE
+		"grab":
+			return Control.CURSOR_DRAG
+		"grabbing":
+			return Control.CURSOR_DRAG
+		"not-allowed", "no-drop":
+			return Control.CURSOR_FORBIDDEN
+		"wait":
+			return Control.CURSOR_WAIT
+		"progress":
+			return Control.CURSOR_BUSY
+		"crosshair":
+			return Control.CURSOR_CROSS
+		"help":
+			return Control.CURSOR_HELP
+		"n-resize", "ns-resize":
+			return Control.CURSOR_VSIZE
+		"e-resize", "ew-resize":
+			return Control.CURSOR_HSIZE
+		"nw-resize", "se-resize", "nwse-resize":
+			return Control.CURSOR_FDIAGSIZE
+		"ne-resize", "sw-resize", "nesw-resize":
+			return Control.CURSOR_BDIAGSIZE
+		"col-resize":
+			return Control.CURSOR_HSPLIT
+		"row-resize":
+			return Control.CURSOR_VSPLIT
+		"none":
+			return Control.CURSOR_ARROW  # Godot doesn't have hidden cursor via cursor shape
+		"default", _:
+			return Control.CURSOR_ARROW
+
 
 ## Set up percentage-based sizing for a control.
 func _setup_percent_sizing(control: Control) -> void:
@@ -634,6 +679,13 @@ func _wrap_with_margin_padding(control: Control, style: Dictionary) -> Control:
 		scroll_container.follow_focus = true
 		scroll_container.add_child(result)
 		result = scroll_container
+
+	# Apply outline (drawn outside the control)
+	if style.has("outline"):
+		var outline = style["outline"]
+		if outline is Dictionary and outline.get("style", "solid") != "none" and outline.get("width", 0) > 0:
+			var offset: int = style.get("outline-offset", 0)
+			result = GmlStyles.apply_outline(result, outline, offset)
 
 	return result
 

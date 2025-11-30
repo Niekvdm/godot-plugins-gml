@@ -27,12 +27,21 @@ static func build_paragraph_inner(node, ctx: Dictionary) -> Control:
 	GmlStyles.apply_text_color(label, style, defaults)
 	GmlStyles.apply_text_styles(label, style, defaults)
 
+	var result: Control = label
+
+	# Apply text-shadow if present (shadow goes behind, so apply first)
+	if style.has("text-shadow"):
+		result = GmlStyles.apply_text_shadow(label, style["text-shadow"])
+
 	# Apply text-decoration if present
 	if style.has("text-decoration"):
 		var color: Color = style.get("color", defaults.get("default_font_color", Color.WHITE))
-		return GmlStyles.apply_text_decoration(label, style["text-decoration"], color)
+		if result == label:
+			result = GmlStyles.apply_text_decoration(label, style["text-decoration"], color)
+		# Note: If both shadow and decoration, decoration is applied to the label
+		# which is already inside the shadow container
 
-	return label
+	return result
 
 
 ## Build a span element.
@@ -49,11 +58,17 @@ static func build_span(node, ctx: Dictionary) -> Dictionary:
 	GmlStyles.apply_text_color(label, style, defaults)
 	GmlStyles.apply_text_styles(label, style, defaults)
 
-	# Apply text-decoration if present
 	var result_control: Control = label
+
+	# Apply text-shadow if present
+	if style.has("text-shadow"):
+		result_control = GmlStyles.apply_text_shadow(label, style["text-shadow"])
+
+	# Apply text-decoration if present
 	if style.has("text-decoration"):
 		var color: Color = style.get("color", defaults.get("default_font_color", Color.WHITE))
-		result_control = GmlStyles.apply_text_decoration(label, style["text-decoration"], color)
+		if result_control == label:
+			result_control = GmlStyles.apply_text_decoration(label, style["text-decoration"], color)
 
 	return {"control": result_control, "inner": label}
 
@@ -92,12 +107,19 @@ static func build_heading_inner(node, level: int, ctx: Dictionary) -> Control:
 	GmlStyles.apply_text_color(label, style, defaults)
 	GmlStyles.apply_text_styles(label, style, defaults)
 
+	var result: Control = label
+
+	# Apply text-shadow if present
+	if style.has("text-shadow"):
+		result = GmlStyles.apply_text_shadow(label, style["text-shadow"])
+
 	# Apply text-decoration if present
 	if style.has("text-decoration"):
 		var color: Color = style.get("color", defaults.get("default_font_color", Color.WHITE))
-		return GmlStyles.apply_text_decoration(label, style["text-decoration"], color)
+		if result == label:
+			result = GmlStyles.apply_text_decoration(label, style["text-decoration"], color)
 
-	return label
+	return result
 
 
 ## Build a label element.
@@ -139,12 +161,19 @@ static func build_label_inner(node, ctx: Dictionary) -> Control:
 							target.grab_focus()
 			)
 
+	var result: Control = label
+
+	# Apply text-shadow if present
+	if style.has("text-shadow"):
+		result = GmlStyles.apply_text_shadow(label, style["text-shadow"])
+
 	# Apply text-decoration if present
 	if style.has("text-decoration"):
 		var color: Color = style.get("color", defaults.get("default_font_color", Color.WHITE))
-		return GmlStyles.apply_text_decoration(label, style["text-decoration"], color)
+		if result == label:
+			result = GmlStyles.apply_text_decoration(label, style["text-decoration"], color)
 
-	return label
+	return result
 
 
 ## Build bold text.
@@ -166,11 +195,18 @@ static func build_bold(node, ctx: Dictionary) -> Control:
 	var color: Color = style.get("color", defaults.get("default_font_color", Color.WHITE))
 	label.add_theme_color_override("font_outline_color", color)
 
+	var result: Control = label
+
+	# Apply text-shadow if present
+	if style.has("text-shadow"):
+		result = GmlStyles.apply_text_shadow(label, style["text-shadow"])
+
 	# Apply text-decoration if present
 	if style.has("text-decoration"):
-		return GmlStyles.apply_text_decoration(label, style["text-decoration"], color)
+		if result == label:
+			result = GmlStyles.apply_text_decoration(label, style["text-decoration"], color)
 
-	return label
+	return result
 
 
 ## Build italic text.
@@ -190,9 +226,16 @@ static func build_italic(node, ctx: Dictionary) -> Control:
 	# Store italic flag for custom font handling
 	label.set_meta("font_style", "italic")
 
+	var result: Control = label
+
+	# Apply text-shadow if present
+	if style.has("text-shadow"):
+		result = GmlStyles.apply_text_shadow(label, style["text-shadow"])
+
 	# Apply text-decoration if present
 	if style.has("text-decoration"):
 		var color: Color = style.get("color", defaults.get("default_font_color", Color.WHITE))
-		return GmlStyles.apply_text_decoration(label, style["text-decoration"], color)
+		if result == label:
+			result = GmlStyles.apply_text_decoration(label, style["text-decoration"], color)
 
-	return label
+	return result
